@@ -33,5 +33,6 @@ picdem_handle *rjl_fsusb_open(void);
 void rjl_write_block(picdem_handle *d, int offset, byte *data);
 //void rjl_erase_block(picdem_handle *d, int offset);
 void rjl_write_config_block(picdem_handle *d, int offset, int len, byte *data);
+void rjl_reset(picdem_handle *d);
 
 #endif /* __FSUSB_H__ */

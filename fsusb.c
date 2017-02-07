@@ -105,7 +105,7 @@ void rjl_request_flash(picdem_handle *d, int offset, int len, bl_packet *pack)
   p.command=READ_FLASH;
   p.address.low=(offset & 0xff)>>0;
   p.address.high=(offset & 0xff00)>>8;
-  p.address.upper=(offset & 0xf0000)>>16;
+  p.address.upper=(offset & 0xff0000)>>16;
   p.len=len;
 
 
@@ -147,7 +147,7 @@ void rjl_write_flash(picdem_handle *d, int offset, int len, byte *data, bl_packe
   p.command=WRITE_FLASH;
   p.address.low=(offset & 0xff)>>0;
   p.address.high=(offset & 0xff00)>>8;
-  p.address.upper=(offset & 0xf0000)>>16;
+  p.address.upper=(offset & 0xff0000)>>16;
   p.len=len;
   for(i=0;i<len;i++) {
     p.data[i]=data[i];
@@ -186,7 +186,7 @@ void rjl_write_block(picdem_handle *d, int offset, byte *data)
   p.command=ERASE_FLASH;
   p.address.low=(offset & 0xff)>>0;
   p.address.high=(offset & 0xff00)>>8;
-  p.address.upper=(offset & 0xf0000)>>16;
+  p.address.upper=(offset & 0xff0000)>>16;
   p.len=1;
 
 
@@ -205,7 +205,7 @@ void rjl_write_block(picdem_handle *d, int offset, byte *data)
     p.command=WRITE_FLASH;
     p.address.low=((offset+16*subblock) & 0xff)>>0;
     p.address.high=((offset+16*subblock) & 0xff00)>>8;
-    p.address.upper=((offset+16*subblock) & 0xf0000)>>16;
+    p.address.upper=((offset+16*subblock) & 0xff0000)>>16;
     p.len=16;
     memcpy(p.data, data+(subblock*16), 16);
 
@@ -247,7 +247,7 @@ void rjl_write_config_block(picdem_handle *d, int offset, int len, byte *data)
   p.command=ERASE_FLASH;
   p.address.low=(offset & 0xff)>>0;
   p.address.high=(offset & 0xff00)>>8;
-  p.address.upper=(offset & 0xf0000)>>16;
+  p.address.upper=(offset & 0xff0000)>>16;
   p.len=1;
 
 
@@ -266,7 +266,7 @@ void rjl_write_config_block(picdem_handle *d, int offset, int len, byte *data)
   p.command=WRITE_CONFIG;
   p.address.low=(offset & 0xff)>>0;
   p.address.high=(offset & 0xff00)>>8;
-  p.address.upper=(offset & 0xf0000)>>16;
+  p.address.upper=(offset & 0xff0000)>>16;
   p.len=len;
   memcpy(p.data, data, len);
 
@@ -302,7 +302,7 @@ void rjl_erase_block(picdem_handle *d, int offset)
   p.command=ERASE_FLASH;
   p.address.low=(offset & 0xff)>>0;
   p.address.high=(offset & 0xff00)>>8;
-  p.address.upper=(offset & 0xf0000)>>16;
+  p.address.upper=(offset & 0xff0000)>>16;
   p.len=1;
 
 
@@ -317,7 +317,20 @@ void rjl_erase_block(picdem_handle *d, int offset)
   //  printf("erase reply is %x\n", retbuf[0]);
 }
 
+// send reset
+void rjl_reset(picdem_handle *d)
+{
+  int r;
+  char p;
 
+  p = RESET;
+
+  r=usb_bulk_write(d, fsusb_endpoint_out, (char*)&p, 1, fsusb_timeout);
+  if(r != 1) {
+    perror("usb_bulk_write");
+    bad("rjl_reset(): USB write failed");
+  }
+}
 
 /* Find the first USB device with this vendor and product.
  *  Exits on errors, like if the device couldn't be found. -osl

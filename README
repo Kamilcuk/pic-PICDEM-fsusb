@@ -7,11 +7,13 @@ Rick Luddy (GPG 1024D/98AA0510) <rickluddy@gmail.com>
 
 Usage:
 
+fsusb: Software for "PICDEM Full Speed USB" demo board
 fsusb <file>             program board with <file> and verify
 fsusb --program <file>   program board with <file> and verify
 fsusb --verify <file>    verify board against <file>
 fsusb --read <file>      read board, saving result in <file>
-
+fsusb --reset            resets board
+fsusb --config <file>    program only configuration bits from <file> and verify
 
 
 Building:

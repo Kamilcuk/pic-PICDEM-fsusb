@@ -60,7 +60,7 @@ enum {
                           // (but in current firmware READ_FLASH works
   WRITE_CONFIG    = 0x07, // NOT TESTED
   UPDATE_LED      = 0x32, // NOT IMPLEMENTED
-  RESET           = 0xFF  // NOT IMPLEMENTED
+  RESET           = 0xFF  // Works
 };
 
 

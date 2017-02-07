@@ -37,7 +37,7 @@ int program_flash(int addr, int len, mi_byte_t *data, char *mask)
     return -1;
   }
 
-  //  printf("writing program block at %.8x\n", addr);
+  printf("writing program block at %.8x\n", addr);
   rjl_write_block(usbdev, addr, data);
 
   return 0;
@@ -47,9 +47,10 @@ int program_config(int addr, int len, mi_byte_t *data, char *mask)
 {
   int i;
 
-  printf("writing size-%i config block at %.8x:\n", len, (addr/64)*64);
+  printf("writing %i config block at %.8x:\n", len, (addr/64)*64);
 
-  for(i=0;i<64;i++) {
+  printf("  : ");
+  for(i=0;i<len;i++) {
     printf("%.2x", data[i]);
   }
   printf("\n");
@@ -66,7 +67,8 @@ int verify_flash(int addr, int len, mi_byte_t *data, char *mask)
   int i;
   bl_packet bp;
   int bad=0;
-  //  printf("verifying %i bytes at %.8x\n", len, addr);
+  printf("verifying %i bytes at %.8x\n", len, addr);
+
   /*
   printf("data is ");
   for(i=0;i<len;i++) {
@@ -151,6 +153,8 @@ void show_usage(void)
   printf("fsusb --program <file>   program board with <file> and verify\n");
   printf("fsusb --verify <file>    verify board against <file>\n");
   printf("fsusb --read <file>      read board, saving result in <file>\n");
+  printf("fsusb --reset            resets board\n");
+  printf("fsusb --config <file>    program only configuration bits from <file> and verify\n");
 }
 
 
@@ -213,6 +217,32 @@ int program_file(char *file)
 
   return retval;
 
+}
+
+int config_program_file(char *file)
+{
+  mi_image *img;
+  int retval=0;
+
+  usbdev=rjl_fsusb_open();
+  img=mi_load_hexfile(file);
+
+#define LAZY(a, b, c) \
+  if(scanpatch(a, b)) { \
+    printf(c " unsuccessful\n"); \
+    retval=1; \
+  } else { \
+    printf(c " successful\n"); \
+  }
+
+  LAZY(img->id,     program_config, "Programming ID memory ");
+  LAZY(img->id,     verify_flash,   "Verifying ID memory");
+  LAZY(img->config, program_config, "Programming configuration ")
+  LAZY(img->config, verify_flash,   "Verifying configuration ")
+
+#undef LAZY
+
+  return retval;
 }
 
 
@@ -299,12 +329,26 @@ int read_to_file(char *file)
   return 0;
 }
 
+int reset_pic(void) 
+{
+  usbdev=rjl_fsusb_open();
+  rjl_reset(usbdev);
+  return 0;
+}
 
 int main(int argc, char *argv[])
 {
   if(argc < 2 || argc > 3) {
     show_usage();
     exit(1);
+  }
+
+  if(argc == 2) {
+    if(!strcmp(argv[1], "--reset")) {
+      exit(reset_pic());
+    }
+    
+    exit(program_file(argv[1]));
   }
 
   if(argc == 3) {
@@ -320,15 +364,14 @@ int main(int argc, char *argv[])
       exit(read_to_file(argv[2]));
     }
 
+    if(!strcmp(argv[1], "--config")) {
+      exit(config_program_file(argv[2]));
+    }
+
     printf("Unknown option %s\n", argv[1]);
     show_usage();
     exit(1);
   }
-
-  if(argc == 2) {
-    exit(program_file(argv[1]));
-  }
-
 
 
   return 1;
