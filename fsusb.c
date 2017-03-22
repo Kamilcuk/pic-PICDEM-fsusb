@@ -65,7 +65,7 @@ void bad(const char *why)
 void recv_usb(picdem_handle *d, int len, byte *dest) {
   int r;
 
-  r=usb_bulk_read(d, fsusb_endpoint_in, dest, len, fsusb_timeout);
+  r=usb_bulk_read(d, fsusb_endpoint_in, (char *)dest, len, fsusb_timeout);
 
   if (r!=len) {
     perror("usb PICDEM read");
@@ -89,7 +89,7 @@ void rjl_request_version(picdem_handle *d, unsigned char *ret)
   }
 
   // command, len, minor, major
-  recv_usb(d,4,buf);
+  recv_usb(d,4,(byte*)buf);
   ret[0]=buf[3];
   ret[1]=buf[2];
 }
@@ -328,7 +328,8 @@ void rjl_reset(picdem_handle *d)
   r=usb_bulk_write(d, fsusb_endpoint_out, (char*)&p, 1, fsusb_timeout);
   if(r != 1) {
     perror("usb_bulk_write");
-    bad("rjl_reset(): USB write failed");
+    printf("rjl_reset(): USB write failed.\n"
+    		"Probably chip resetted.");
   }
 }
 

@@ -23,6 +23,8 @@
 
 #include "bootload.h"
 
+void bad(const char *why);
+
 typedef struct usb_dev_handle picdem_handle;
 
 void rjl_request_flash(picdem_handle *d, int offset, int len, bl_packet *pack);

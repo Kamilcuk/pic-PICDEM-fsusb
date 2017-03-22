@@ -148,7 +148,7 @@ mi_image *mi_load_hexfile(char *filename)
 
 
 
-  f=fopen(filename, "r");
+  f = fopen(filename, "r");
   if(f == NULL) {
     return NULL;
   }

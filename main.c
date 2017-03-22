@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include "fsusb.h"
 #include <string.h>
+#include <getopt.h>
 
 picdem_handle *usbdev;
 
@@ -146,25 +147,17 @@ int scanpatch(mi_patch *p, scan_callback_t sc)
   return retval;
 }
 
-void show_usage(void)
-{
-  printf("fsusb: Software for \"PICDEM Full Speed USB\" demo board\n");
-  printf("fsusb <file>             program board with <file> and verify\n");
-  printf("fsusb --program <file>   program board with <file> and verify\n");
-  printf("fsusb --verify <file>    verify board against <file>\n");
-  printf("fsusb --read <file>      read board, saving result in <file>\n");
-  printf("fsusb --reset            resets board\n");
-  printf("fsusb --config <file>    program only configuration bits from <file> and verify\n");
-}
-
-
 int verify_file(char *file)
 {
   mi_image *img;
   int retval=0;
 
-  usbdev=rjl_fsusb_open();
-  img=mi_load_hexfile(file);
+  usbdev = rjl_fsusb_open();
+  img = mi_load_hexfile(file);
+  if ( img == NULL ) {
+	  perror(__FUNCTION__);
+	  bad("error loading hexfile.");
+  }
 
   if(scanpatch(img->program, verify_flash)) {
     printf("Program memory contains errors!\n");
@@ -186,8 +179,12 @@ int program_file(char *file)
   mi_image *img;
   int retval=0;
 
-  usbdev=rjl_fsusb_open();
-  img=mi_load_hexfile(file);
+  usbdev = rjl_fsusb_open();
+  img = mi_load_hexfile(file);
+  if ( img == NULL ) {
+	  perror(__FUNCTION__);
+	  bad("error loading hexfile.");
+  }
 
   if(scanpatch(img->program, program_flash)) {
     printf("Writing program memory unsuccessful\n");
@@ -224,8 +221,12 @@ int config_program_file(char *file)
   mi_image *img;
   int retval=0;
 
-  usbdev=rjl_fsusb_open();
-  img=mi_load_hexfile(file);
+  usbdev = rjl_fsusb_open();
+  img = mi_load_hexfile(file);
+  if ( img == NULL ) {
+	  perror(__FUNCTION__);
+	  bad("error loading hexfile.");
+  }
 
 #define LAZY(a, b, c) \
   if(scanpatch(a, b)) { \
@@ -336,43 +337,59 @@ int reset_pic(void)
   return 0;
 }
 
+enum {
+	MODE_RESET,
+	MODE_VERIFY,
+	MODE_PROGRAM,
+	MODE_READ,
+	MODE_CONFIG
+} mode = MODE_PROGRAM;
+
+static struct option long_options[] = {
+    {"reset",   no_argument, (int*)&mode, MODE_RESET},
+    {"verify",  no_argument, (int*)&mode, MODE_VERIFY},
+    {"program", no_argument, (int*)&mode, MODE_PROGRAM},
+    {"read",    no_argument, (int*)&mode, MODE_READ},
+    {"config",  no_argument, (int*)&mode, MODE_CONFIG},
+    {0, 0, 0, 0}
+};
+
+static void show_usage(void)
+{
+  printf("fsusb: Software for \"PICDEM Full Speed USB\" demo board\n");
+  printf("fsusb <file>             program board with <file> and verify\n");
+  printf("fsusb --program <file>   program board with <file> and verify\n");
+  printf("fsusb --verify <file>    verify board against <file>\n");
+  printf("fsusb --read <file>      read board, saving result in <file>\n");
+  printf("fsusb --reset            resets board\n");
+  printf("fsusb --config <file>    program only configuration bits from <file> and verify\n");
+}
+
 int main(int argc, char *argv[])
 {
-  if(argc < 2 || argc > 3) {
-    show_usage();
-    exit(1);
-  }
+	int option_index = 0;
+	while( getopt_long (argc, argv, "", long_options, &option_index) != -1 )
+		continue;
 
-  if(argc == 2) {
-    if(!strcmp(argv[1], "--reset")) {
-      exit(reset_pic());
-    }
-    
-    exit(program_file(argv[1]));
-  }
+	if ( mode != MODE_RESET && !argv[optind] ) {
+		printf("Error: No <file> given.");
+		show_usage();
+		exit(1);
+	}
 
-  if(argc == 3) {
-    if(!strcmp(argv[1], "--verify")) {
-      exit(verify_file(argv[2]));
-    }
+	switch(mode) {
+	case MODE_RESET:
+		exit(reset_pic());
+	case MODE_VERIFY:
+		exit(verify_file(argv[optind]));
+	default:
+	case MODE_PROGRAM:
+		exit(program_file(argv[optind]));
+	case MODE_READ:
+		exit(read_to_file(argv[optind]));
+	case MODE_CONFIG:
+		exit(config_program_file(argv[optind]));
+	}
 
-    if(!strcmp(argv[1], "--program")) {
-      exit(program_file(argv[2]));
-    }
-
-    if(!strcmp(argv[1], "--read")) {
-      exit(read_to_file(argv[2]));
-    }
-
-    if(!strcmp(argv[1], "--config")) {
-      exit(config_program_file(argv[2]));
-    }
-
-    printf("Unknown option %s\n", argv[1]);
-    show_usage();
-    exit(1);
-  }
-
-
-  return 1;
+	return 1;
 }
